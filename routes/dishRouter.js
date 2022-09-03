@@ -1,14 +1,9 @@
-/*Now imagine you have a thousand REST API endpoints, and you need to construct something like this. 
-Your index.js file will explode with so many different REST API endpoints. And each one being handled 
-using its own app.get, app.put, app.delete, and app.post. Now Wxpress supports a way of subdividing 
-this work into multiple, many Express applications, which then can be combined together to form the 
-overall, Express application. This is where we will make use of the Express Router to be able to 
-construct a mini Express application. And then, inside a Express Router file, we will support the 
-REST API endpoint for one group of REST API parts. So for example, for dishes, and dishes dishId, 
-hey can all be supported in one file.*/
 
 const express = require ('express'); // even router is mini express file bit we still need to require express module
 const bodyParser = require('body-parser');
+
+const mongoose = require('mongoose');
+const Dishes = require('../models/dishes');
 
 const dishRouter = express.Router(); //using express router module
 
@@ -20,18 +15,27 @@ dishRouter.route('/')    //this router will be mount in index file. note ; is re
 //implementations all together. So that is the reason why they use a Express router. 
 
 
-//Now as we moved to this file we need to remove app and end point as well. Remaining method will be chained in all this
-.all((req,res,next) =>{
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
-    next();
-})
-.get((req,res,next) => {
-    res.end('Will send all the dishes to you');
+// .all is removed from here, instead, I'm going to explicitly declare all the various endpoints. 
+//in get method res is replaced as below
+.get((req,res,next) => { // So when you do a get operation on the slash dishes endpoint, you're expecting all the dishes to be returned to the client in response to the get request
+    Dishes.find({})
+    .then((dishes) =>{
+        res.statusCode = 200;
+        res.setHeader ('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
+        res.json(dishes);//  we'll say res.json. So the res.json will take as an input in json string and then send it back over to my client. So, when you call res.json and supply the value and then it will simply take the parameter that you give here and then send it back as a json response. It will put this dishes into the body of the reply message and then send it back to the server. 
+    }, (err) => next(err))
+    .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
 })
 
 .post((req,res,next) =>{ //post request from client will be json format which will be carrying some name and descripttion info
-    res.end('Will add the dish: '+ req.body.name + ' with details: ' + req.body.description);   // so the server will respond this to client
+    Dishes.create(req.body)
+    .then((dish) =>{
+        console.log('Dish Created', dish);
+        res.statusCode = 200;
+        res.setHeader ('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
+        res.json(dish);
+    }, (err) => next(err))
+    .catch((err) => next(err));
 })
 
 .put((req,res,next) =>{ 
@@ -40,7 +44,13 @@ dishRouter.route('/')    //this router will be mount in index file. note ; is re
 })
 
 .delete((req,res,next) =>{ 
-     res.end('Deleting all the dishes');
+     Dishes.remove({})
+     .then((resp) =>{
+        res.statusCode = 200;
+        res.setHeader ('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
+        res.json(resp);
+     }, (err) => next(err))
+     .catch((err) => next(err));
 }); //Note that ; comes at the end of this chain only
 
 
@@ -48,7 +58,13 @@ dishRouter.route('/')    //this router will be mount in index file. note ; is re
 
 dishRouter.route('/:dishId')
 .get((req,res,next) => {
-    res.end('Will send details of the dish: ' + req.params.dishId + ' to you');
+    Dishes.findById(req.params.dishId)
+    .then((dish) =>{
+        res.statusCode = 200;
+        res.setHeader ('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
+        res.json(dish);//  we'll say res.json. So the res.json will take as an input in json string and then send it back over to my client. So, when you call res.json and supply the value and then it will simply take the parameter that you give here and then send it back as a json response. It will put this dishes into the body of the reply message and then send it back to the server. 
+    }, (err) => next(err))
+    .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
 })
 
 .post((req,res,next) =>{ 
@@ -58,14 +74,27 @@ dishRouter.route('/:dishId')
 
 .put((req,res,next) =>{ 
                                            //since this is a PUT operation, and if the body contains the JSON string, which contains the details of the dish, I can extract the JSON string because we are using the body parser
-    res.write('updating the dish: ' + req.params.dishId + '\n'); //  \n for new line
-    res.end('Will update the dish: ' +req.body.name + 'with details: ' + req.body.description);
+    Dishes.findByIdAndUpdate(req.params.dishId, {
+        $set: req.body
+
+    }, {new: true})
+    .then((dish) =>{
+        res.statusCode = 200;
+        res.setHeader ('Content-Type', 'application/json'); 
+        res.json(dish);
+    }, (err) => next(err))
+    .catch((err) => next(err));   
 })
 
-.delete((req,res,next) =>{ 
-     res.end('Deleting dish: ' + req.params.dishId);
+.delete((req, res, next) =>{ 
+     Dishes.findByIdAndRemove(req.params.dishId)
+     .then((resp) =>{
+        res.statusCode = 200;
+        res.setHeader ('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
+        res.json(resp);
+     }, (err) => next(err))
+     .catch((err) => next(err));
 });
-
 
 //all of the above operation will be done bye dishRouter and hence will be required in main file
 module.exports = dishRouter;
