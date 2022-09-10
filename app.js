@@ -3,6 +3,8 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var session = require('express-session');
+var FileStore = require('session-file-store')(session);//this takes the session as its parameters, this session referring to this that we've just imported
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -13,6 +15,8 @@ var leadersRouter = require('./routes/leadersRouter');
 var app = express();
 
 const mongoose = require('mongoose');
+mongoose.Promise = require ('bluebird');
+
 const Dishes = require('./models/dishes');
 const promotions = require('./models/promotions');
 const leaders = require('./models/leaders');
@@ -32,14 +36,19 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser('12345-67890-09876-54321'));//no parameter was there before. secret key is for signed cookie
-
+//app.use(cookieParser('12345-67890-09876-54321'));//no parameter was there before. secret key is for signed cookie
+app.use(session({
+  name: 'session-id',
+  secret: '12345-67890-09876-54321',
+  saveUninitialized: false,
+  store: new FileStore()
+}));
 //Now, we want to do authentication right before we allow the client to be able to fetch data from our server. 
 
 function auth(req, res, next) {
-  console.log(req.signedCookies); // we're going to modify this authorization middleware to make use of cookies instead of the authorization header.
+  console.log(req.session); // we're going to modify this authorization middleware to make use of cookies instead of the authorization header.
 
-  if (!req.signedCookies.user) {
+  if (!req.session.user) {
 
     var authHeader = req.headers.authorization;
 
@@ -57,7 +66,7 @@ function auth(req, res, next) {
     var pass = auth[1];
 
     if (user == 'admin' && pass == 'password') {
-      res.cookie('user','admin',{ signed:true })
+      req.session.user = 'admin';
       next();
     } else {
       var err = new Error('You are not authenticated');
@@ -67,12 +76,12 @@ function auth(req, res, next) {
     }
   }
   else{
-    if (req.signedCookies.user == 'admin'){
+    if (req.session.user == 'admin'){
       next();
     }
     else{
       var err = new Error('You are not authenticated');
-      
+      res.setHeader('WWW-Authenticate', 'Basic');
       err.status = 401;
       next(err);
     }
