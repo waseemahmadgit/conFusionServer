@@ -13,16 +13,17 @@ var leadersRouter = require('./routes/leadersRouter');
 var app = express();
 
 const mongoose = require('mongoose');
-const Dishes = require ('./models/dishes');
-const promotions = require ('./models/promotions');
-const leaders = require ('./models/leaders');
+const Dishes = require('./models/dishes');
+const promotions = require('./models/promotions');
+const leaders = require('./models/leaders');
+const { signedCookies } = require('cookie-parser');
 
-const url ='mongodb://localhost:27017/conFusion'
+const url = 'mongodb://localhost:27017/conFusion'
 const connect = mongoose.connect(url);
 
 connect.then((db) => {
   console.log('connected correctly to server');
-}, (err) => {console.log(err);});
+}, (err) => { console.log(err); });
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -31,35 +32,52 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser('12345-67890-09876-54321'));//no parameter was there before. secret key is for signed cookie
 
 //Now, we want to do authentication right before we allow the client to be able to fetch data from our server. 
 
-function auth (req, res, next) {
-  console.log(req.headers); // to see whats coming from the client
+function auth(req, res, next) {
+  console.log(req.signedCookies); // we're going to modify this authorization middleware to make use of cookies instead of the authorization header.
 
-  var authHeader = req.headers.authorization;
+  if (!req.signedCookies.user) {
 
-  if (!authHeader){
-    var err = new Error('You are not authenticated');
-    res.setHeader('WWW-Authenticate', 'Basic');
-    err.status = 401;
-    next (err);
-    return;
+    var authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      var err = new Error('You are not authenticated');
+      res.setHeader('WWW-Authenticate', 'Basic');
+      err.status = 401;
+      next(err);
+      return;
+    }
+    //Buffer will split authheaders 1nto 2. first contains basic second a string. then .tostring will furthe split into 2 as user name and password
+    //notice that I am loading two splits here, one on the space and the second one is :, using the colon which separates the username and password.
+    var auth = new Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    var user = auth[0];
+    var pass = auth[1];
+
+    if (user == 'admin' && pass == 'password') {
+      res.cookie('user','admin',{ signed:true })
+      next();
+    } else {
+      var err = new Error('You are not authenticated');
+      res.setHeader('WWW-Authenticate', 'Basic');
+      err.status = 401;
+      next(err);
+    }
+  }
+  else{
+    if (req.signedCookies.user == 'admin'){
+      next();
+    }
+    else{
+      var err = new Error('You are not authenticated');
+      
+      err.status = 401;
+      next(err);
+    }
   }
 
-  var auth = new Buffer.from(authHeader.split(' ')[1],  'base64').toString().split(':');
-  var user = auth[0];
-  var pass = auth[1];
-
-  if (user == 'admin' && pass == 'password') {
-    next();
-  } else {
-    var err = new Error('You are not authenticated');
-    res.setHeader('WWW-Authenticate', 'Basic');
-    err.status = 401;
-    next (err);
-  }
 }
 app.use(auth);
 
@@ -68,19 +86,19 @@ app.use(express.static(path.join(__dirname, 'public')));// enables us to serve s
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/dishes',dishRouter);
-app.use('/promotions',promoRouter);
-app.use('/leaders',leadersRouter);
+app.use('/dishes', dishRouter);
+app.use('/promotions', promoRouter);
+app.use('/leaders', leadersRouter);
 
 
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
