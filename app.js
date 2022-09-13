@@ -43,6 +43,9 @@ app.use(session({
   saveUninitialized: false,
   store: new FileStore()
 }));
+
+app.use('/', indexRouter);//bringing these two up means one can access these two endpoints befor/without authentication
+app.use('/users', usersRouter);
 //Now, we want to do authentication right before we allow the client to be able to fetch data from our server. 
 
 function auth(req, res, next) {
@@ -50,36 +53,18 @@ function auth(req, res, next) {
 
   if (!req.session.user) {
 
-    var authHeader = req.headers.authorization;
-
-    if (!authHeader) {
       var err = new Error('You are not authenticated');
-      res.setHeader('WWW-Authenticate', 'Basic');
       err.status = 401;
       next(err);
       return;
     }
     //Buffer will split authheaders 1nto 2. first contains basic second a string. then .tostring will furthe split into 2 as user name and password
     //notice that I am loading two splits here, one on the space and the second one is :, using the colon which separates the username and password.
-    var auth = new Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-    var user = auth[0];
-    var pass = auth[1];
-
-    if (user == 'admin' && pass == 'password') {
-      req.session.user = 'admin';
+    else {
+      if (req.session.user == 'authenticated') {
       next();
-    } else {
-      var err = new Error('You are not authenticated');
-      res.setHeader('WWW-Authenticate', 'Basic');
-      err.status = 401;
-      next(err);
-    }
-  }
-  else{
-    if (req.session.user == 'admin'){
-      next();
-    }
-    else{
+    } 
+    else {
       var err = new Error('You are not authenticated');
       res.setHeader('WWW-Authenticate', 'Basic');
       err.status = 401;
@@ -93,8 +78,7 @@ app.use(auth);
 app.use(express.static(path.join(__dirname, 'public')));// enables us to serve static data from public folder
 
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
 app.use('/leaders', leadersRouter);
