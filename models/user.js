@@ -5,22 +5,15 @@ Enable clients to access secure resources on the server after authentication. */
 
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
-
+var passportLocalMongoose = require('passport-local-mongoose');
+//username and password as we added earlier will be removed as passportLocalMongoose plugin itself will handle it 
 var User = new Schema({
-    username: {
-        type : String,
-        required : true,
-        unique : true
-    },
-    password: {
-        type : String,
-        required : true 
-    },
+   
     admin: {
         type : Boolean,
         default : false
     }
-}); /*by default when a user is created, a new user is created, the admin flag will be set to false. You 
-can explicitly set it to true from within your code in order to mark a user as an administrative user. */
+}); 
+User.plugin(passportLocalMongoose);//adding support for username and hashed storage of the password using the hash and salt and adding additional methods on the user schema and the model which are useful for passport authentication. 
 
 module.exports = mongoose.model('User', User);

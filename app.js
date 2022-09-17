@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var session = require('express-session');
 var FileStore = require('session-file-store')(session);//this takes the session as its parameters, this session referring to this that we've just imported
+var passport = require('passport');
+var authenticate = require ('./authenticate');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -21,6 +23,7 @@ const Dishes = require('./models/dishes');
 const promotions = require('./models/promotions');
 const leaders = require('./models/leaders');
 const { signedCookies } = require('cookie-parser');
+const { initialize } = require('passport');
 
 const url = 'mongodb://localhost:27017/conFusion'
 const connect = mongoose.connect(url);
@@ -44,6 +47,9 @@ app.use(session({
   store: new FileStore()
 }));
 
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use('/', indexRouter);//bringing these two up means one can access these two endpoints befor/without authentication
 app.use('/users', usersRouter);
 //Now, we want to do authentication right before we allow the client to be able to fetch data from our server. 
@@ -51,25 +57,18 @@ app.use('/users', usersRouter);
 function auth(req, res, next) {
   console.log(req.session); // we're going to modify this authorization middleware to make use of cookies instead of the authorization header.
 
-  if (!req.session.user) {
+  if (!req.user) {
 
       var err = new Error('You are not authenticated');
-      err.status = 401;
+      err.status = 403;
       next(err);
       return;
     }
     //Buffer will split authheaders 1nto 2. first contains basic second a string. then .tostring will furthe split into 2 as user name and password
     //notice that I am loading two splits here, one on the space and the second one is :, using the colon which separates the username and password.
     else {
-      if (req.session.user == 'authenticated') {
+     
       next();
-    } 
-    else {
-      var err = new Error('You are not authenticated');
-      res.setHeader('WWW-Authenticate', 'Basic');
-      err.status = 401;
-      next(err);
-    }
   }
 
 }
