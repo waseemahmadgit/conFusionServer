@@ -6,6 +6,7 @@ Enable clients to access secure resources on the server after authentication. */
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var passportLocalMongoose = require('passport-local-mongoose');
+var session = require('express-session');
 //username and password as we added earlier will be removed as passportLocalMongoose plugin itself will handle it 
 var User = new Schema({
    
@@ -14,6 +15,7 @@ var User = new Schema({
         default : false
     }
 }); 
+// to use mongoose local schema as plugin
 User.plugin(passportLocalMongoose);//adding support for username and hashed storage of the password using the hash and salt and adding additional methods on the user schema and the model which are useful for passport authentication. 
 
 module.exports = mongoose.model('User', User);

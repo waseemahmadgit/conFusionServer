@@ -3,21 +3,14 @@ const express = require('express'); // even router is mini express file bit we s
 const bodyParser = require('body-parser');
 
 const mongoose = require('mongoose');
+const authenticate = require ('../authenticate');
+
 const Dishes = require('../models/dishes');
-const { compileClientWithDependenciesTracked } = require('jade');
 
 const dishRouter = express.Router(); //using express router module
 
 dishRouter.use(bodyParser.json());
 
-/*how do we make modifications to the comments themselves? 
-How do we get all the list of comments for a dish? 
-How do we modify a specific comment in the dish and so on? 
-So this is what we will see about how to 
-support them using the various get put post and delete operations on 
-the dish dishes slash dish ID slash comments and the dishes 
-slash dish ID slash comments slash comment ID REST API endpoints.
-*/
 
 
 
@@ -33,7 +26,7 @@ dishRouter.route('/')
             .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
     })
 
-    .post((req, res, next) => { //post request from client will be json format which will be carrying some name and descripttion info
+    .post(authenticate.verifyUser, (req, res, next) => { //post request from client will be json format which will be carrying some name and descripttion info
         Dishes.create(req.body)
             .then((dish) => {
                 console.log('Dish Created', dish);
@@ -44,12 +37,12 @@ dishRouter.route('/')
             .catch((err) => next(err));
     })
 
-    .put((req, res, next) => {
+    .put(authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end('PUT operations not supported');
     })
 
-    .delete((req, res, next) => {
+    .delete(authenticate.verifyUser, (req, res, next) => {
         Dishes.remove({})
             .then((resp) => {
                 res.statusCode = 200;
@@ -73,12 +66,12 @@ dishRouter.route('/:dishId')
             .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
     })
 
-    .post((req, res, next) => {
+    .post(authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end('POST operations not supported on /dishes/' + req.params.dishId);
     })
 
-    .put((req, res, next) => {
+    .put(authenticate.verifyUser, (req, res, next) => {
         //since this is a PUT operation, and if the body contains the JSON string, which contains the details of the dish, I can extract the JSON string because we are using the body parser
         Dishes.findByIdAndUpdate(req.params.dishId, {
             $set: req.body
@@ -92,7 +85,7 @@ dishRouter.route('/:dishId')
             .catch((err) => next(err));
     })
 
-    .delete((req, res, next) => {
+    .delete(authenticate.verifyUser, (req, res, next) => {
         Dishes.findByIdAndRemove(req.params.dishId)
             .then((resp) => {
                 res.statusCode = 200;
@@ -124,7 +117,7 @@ dishRouter.route('/:dishId/comments')
             .catch((err) => next(err));
     })
 
-    .post((req, res, next) => {  //in case of post, we are expecting that they would be returned a dish ID and then we will look for the dish, and then we will take the set of comments from the body and then push it into the dish there.
+    .post(authenticate.verifyUser, (req, res, next) => {  //in case of post, we are expecting that they would be returned a dish ID and then we will look for the dish, and then we will take the set of comments from the body and then push it into the dish there.
         Dishes.findById(req.params.dishId) // we are looking for the dish to which the comments will be pushed
             .then((dish) => {
                 if (dish != null) {
@@ -146,12 +139,12 @@ dishRouter.route('/:dishId/comments')
             .catch((err) => next(err));
     })
 
-    .put((req, res, next) => {
+    .put(authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end('PUT operations not supported on dishes/' + req.params.dishId + '/comments');
     })
 
-    .delete((req, res, next) => { //removing all the comments only from dish and not dish itself 
+    .delete(authenticate.verifyUser, (req, res, next) => { //removing all the comments only from dish and not dish itself 
         Dishes.findById( req.params.dishId ) // we are looking for the dish to which the comments will be pushed
             .then((dish) => {
                 if (dish != null) {
@@ -217,13 +210,13 @@ dishRouter.route('/:dishId/comments/:commentId')
             .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
     })
 
-    .post((req, res, next) => {
+    .post(authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end('POST operations not supported on /dishes/' + req.params.dishId
             + '/comments/' + req.params.commentId);
     })
 
-    .put((req, res, next) => {
+    .put(authenticate.verifyUser, (req, res, next) => {
         Dishes.findById(req.params.dishId)
             .then((dish) => {
                 if (dish != null && dish.comments.id(req.params.commentId) != null) { // it means dish exists and also comments exists
@@ -254,7 +247,7 @@ dishRouter.route('/:dishId/comments/:commentId')
             .catch((err) => next(err));
     })
 
-    .delete((req, res, next) => {
+    .delete(authenticate.verifyUser, (req, res, next) => {
         Dishes.findById(req.params.dishId)
         .then((dish) => {
             if (dish != null && dish.comments.id(req.params.commentId) != null) {

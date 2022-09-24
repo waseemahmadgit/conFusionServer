@@ -7,6 +7,7 @@ var session = require('express-session');
 var FileStore = require('session-file-store')(session);//this takes the session as its parameters, this session referring to this that we've just imported
 var passport = require('passport');
 var authenticate = require ('./authenticate');
+var config = require('./config');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -25,8 +26,11 @@ const leaders = require('./models/leaders');
 const { signedCookies } = require('cookie-parser');
 const { initialize } = require('passport');
 
-const url = 'mongodb://localhost:27017/conFusion'
-const connect = mongoose.connect(url);
+
+const url = config.mongoUrl;
+const connect = mongoose.connect(url,{
+  useMongoClient: true
+});
 
 connect.then((db) => {
   console.log('connected correctly to server');
@@ -39,43 +43,14 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-//app.use(cookieParser('12345-67890-09876-54321'));//no parameter was there before. secret key is for signed cookie
-app.use(session({
-  name: 'session-id',
-  secret: '12345-67890-09876-54321',
-  saveUninitialized: false,
-  store: new FileStore()
-}));
 
 app.use(passport.initialize());
-app.use(passport.session());
 
 app.use('/', indexRouter);//bringing these two up means one can access these two endpoints befor/without authentication
 app.use('/users', usersRouter);
 //Now, we want to do authentication right before we allow the client to be able to fetch data from our server. 
 
-function auth(req, res, next) {
-  console.log(req.session); // we're going to modify this authorization middleware to make use of cookies instead of the authorization header.
-
-  if (!req.user) {
-
-      var err = new Error('You are not authenticated');
-      err.status = 403;
-      next(err);
-      return;
-    }
-    //Buffer will split authheaders 1nto 2. first contains basic second a string. then .tostring will furthe split into 2 as user name and password
-    //notice that I am loading two splits here, one on the space and the second one is :, using the colon which separates the username and password.
-    else {
-     
-      next();
-  }
-
-}
-app.use(auth);
-
 app.use(express.static(path.join(__dirname, 'public')));// enables us to serve static data from public folder
-
 
 
 app.use('/dishes', dishRouter);

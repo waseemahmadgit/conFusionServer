@@ -1,7 +1,6 @@
 const express = require ('express');
 const bodyParser = require ('body-parser');
-
-const mongoose = require('mongoose');
+const authenticate = require('../authenticate');
 const Promotions = require('../models/promotions');
 
 const promoRouter = express.Router();
@@ -20,13 +19,13 @@ promoRouter.route('/')
             .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
     })
 
-.put((req,res,next) => {
+.put(authenticate.verifyUser, (req,res,next) => {
     res.statusCode = 403
     res.end('Operation not allowed on localhost/3000:' + req.body);
     
 })
 
-.post((req, res, next) => { //post request from client will be json format which will be carrying some name and descripttion info
+.post(authenticate.verifyUser, (req, res, next) => { //post request from client will be json format which will be carrying some name and descripttion info
     Promotions.create(req.body)
         .then((promotion) => {
             console.log('Promotion Created', promotion);
@@ -37,7 +36,7 @@ promoRouter.route('/')
         .catch((err) => next(err));
 })
 
-.delete((req, res, next) => {
+.delete(authenticate.verifyUser, (req, res, next) => {
     Promotions.remove({})
         .then((resp) => {
             res.statusCode = 200;
@@ -61,12 +60,12 @@ promoRouter.route('/:promoId')
         .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
 })
 
-    .post((req,res,next) => {
+    .post(authenticate.verifyUser, (req,res,next) => {
         res.statusCode = 403;
         res.end('Post Operation is not supported on promotion ' + req.params.promoId);
     })
 
-    .put((req, res, next) =>{
+    .put(authenticate.verifyUser, (req, res, next) =>{
         Promotions.findByIdAndUpdate(req.params.promoId,{
           $set: req.body  
         }, {new : true})
@@ -79,7 +78,7 @@ promoRouter.route('/:promoId')
 
     })
 
-    .delete((req,res,next) => {
+    .delete(authenticate.verifyUser, (req,res,next) => {
         Promotions.findByIdAndRemove(req.params.promoId)
         .then((resp) => {
             res.statusCode = 200;

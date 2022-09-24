@@ -1,0 +1,45 @@
+what happens now is that when the user authenticates on the /login endpoint and the user is successfully authenticated, 
+then the token will be created by the server and sent back to the client or the user. So, the client will include the token in 
+every subsequent incoming request in the authorization header. Now, how does it include the authorization header? 
+Let's go back to authentic.js and here, you see that we said ExtractJWT.fromAuthHeaderAsBearerToken here. 
+So, this will be included in the authentication header as a bearer token. I'll show you how this is done, 
+then we use postman to include the bearer token into the authentication header. Now, when this comes in, 
+then you recall that right down below here, you have configured this method here called verifyUser, 
+which calls upon the passport authenticate with JWT. So, this one uses the token that 
+comes in the authentication header and then verifies the user. So, anytime I want to verify the user's authenticity, 
+I can simply call verify user, and that will initiate the call to the passport.authenticate and verify the sser. 
+If this is successful, it will allow me to proceed. This procedure is very similar to what you have done in the 
+users.js file where you call upon the same passport.authenticate('local'). So, if this is successful, 
+then you go forward. If it fails, the authentication function will return the error message back to the client saying that the user is not authorized. 
+So, that is already taken care of. So now, that we have included this into my authenticate.js file, 
+any place that I want to verify the user, I can simply call upon 
+this verifyUser function that I have specified here or the export that I've specified here, 
+which we'll call upon the passport.authenticate using the JWT strategy to authenticate the user. 
+Now, how do we make use of this? Now, what we're going to do is we're going to go into each and every one of our routers, 
+and control the options on all the routes that we want to control. So, going back to app.js file, now, 
+that we are not using sessions I'm going to remove this session from here, because we are no longer using sessions. 
+Similarly, I'm going to remove this passport.session from here also. That is also not need. 
+Also, this authentication, see earlier, when I configured this authentication, 
+this authentication was applied to every single incoming request. Now, I'm going to change my application, 
+whereby I will require authentication only on certain routes and not on all the routes. So, let me remove this authentication completely from app.js. 
+So, now, when the request comes in, if it is on / endpoint, the index will be served. If it is on /users endpoint it'll allow you to navigate to 
+the various routes that are mounted onto the /users in the users.js, and then subsequently, the rest of the ones. 
+What I'm going to do now is I'm going to leave the public folder open for anybody to access. Now, in many applications, 
+this may be just fine. So, I'm going to leave that open. Now, on the dishes, promotions, and the leaders' endpoint, 
+All the get requests. I will let those be replied to without requiring any authentication. Now why would I want to do that? 
+If a user is doing a get request, the user just wants to retrieve information. So, for example, on the client side if I'm implementing a web application using Angular 
+or a client application using Ionic or native script, then maybe I want to implement my app in 
+such a way that the main page will display information already, the genetic information that you want to make available to anybody that 
+visits your website or that opens your app. So, basic information can be displayed there. 
+But if you want to change anything, then you expect the user to be authenticated. 
+So, you will allow POST operations, put operations, and delete operations to be done only by authenticated users. 
+Similarly, for comments for example, you can say that comments can be only posted or modified by authenticated users. 
+So, you can restrict only some routes for authenticated users, the other route you can leave them open. How do we do that? 
+Now this is where the verify user that we have exported from authenticate.js file comes in handy. 
+Now instead of controlling all the end points, all the various operations on the dishes, promotions, 
+and leaders in points, we will open only the get operations for anybody, but the post, put, and delete operations will be restricted only to authenticated users. 
+In the assignment, you will add in one more category of users called admin users. Now you would restrict certain operations to be performed only by admin users. So, for example, modifying the dishes 
+or deleting the dishes information from the database, will be restricted only to admin users. But basic users can post comments, 
+modify the comments that they have posted, and perhaps even save some favorite dishes. We'll do that part in the fourth module. 
+Now so how do we control specific routes? So this is where we have to go into each of the routers 
+and then import controls on specific routes.
