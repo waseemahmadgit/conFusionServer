@@ -3,7 +3,7 @@ const express = require('express'); // even router is mini express file bit we s
 const bodyParser = require('body-parser');
 
 const mongoose = require('mongoose');
-const authenticate = require ('../authenticate');
+const authenticate = require('../authenticate');
 
 const Dishes = require('../models/dishes');
 
@@ -18,6 +18,7 @@ dishRouter.route('/')
 
     .get((req, res, next) => { // So when you do a get operation on the slash dishes endpoint, you're expecting all the dishes to be returned to the client in response to the get request
         Dishes.find({})
+            .populate('comments.author') //when the dishes document has been constructed to send back the reply to the user, we're going to populate the author field inside there from the user document in there.
             .then((dishes) => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
@@ -58,6 +59,7 @@ dishRouter.route('/')
 dishRouter.route('/:dishId')
     .get((req, res, next) => {
         Dishes.findById(req.params.dishId)
+            .populate('comments.author')
             .then((dish) => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
@@ -102,6 +104,7 @@ dishRouter.route('/:dishId/comments')
 
     .get((req, res, next) => {
         Dishes.findById(req.params.dishId)
+            .populate('comments.author')
             .then((dish) => {
                 if (dish != null) {
                     res.statusCode = 200;
@@ -117,26 +120,30 @@ dishRouter.route('/:dishId/comments')
             .catch((err) => next(err));
     })
 
-    .post(authenticate.verifyUser, (req, res, next) => {  //in case of post, we are expecting that they would be returned a dish ID and then we will look for the dish, and then we will take the set of comments from the body and then push it into the dish there.
-        Dishes.findById(req.params.dishId) // we are looking for the dish to which the comments will be pushed
-            .then((dish) => {
-                if (dish != null) {
-                    dish.comments.push(req.body);
-                    dish.save()
-                        .then((dish) => {
-                            res.statusCode = 200;
-                            res.setHeader('Content-Type', 'application/json');
-                            res.json(dish);
-                        }, (err) => next(err));
-
-                }
-                else {
-                    err = new Error('Dish ' + req.params.dishId + 'not found');
-                    err.status = 404;
-                    return next(err); //Because if you return this as an error, as you'll recall, this will be handled by your app.js file, so in the app.js file, right at the bottom here, we have the error handler here. So when it comes in here, this will set the rest or status to error dot status, which we had set to 404, so that is what will be returned
-                }
-            }, (err) => next(err))
-            .catch((err) => next(err));
+    .post(authenticate.verifyUser, (req, res, next) => {
+        Dishes.findById(req.params.dishId)
+        .then((dish) => {
+            if (dish != null) {
+                req.body.author = req.user._id;
+                dish.comments.push(req.body);
+                dish.save()
+                .then((dish) => {
+                    Dishes.findById(dish._id)
+                    .populate('comments.author')
+                    .then((dish) => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(dish);
+                    })            
+                }, (err) => next(err));
+            }
+            else {
+                err = new Error('Dish ' + req.params.dishId + ' not found');
+                err.status = 404;
+                return next(err);
+            }
+        }, (err) => next(err))
+        .catch((err) => next(err));
     })
 
     .put(authenticate.verifyUser, (req, res, next) => {
@@ -145,7 +152,7 @@ dishRouter.route('/:dishId/comments')
     })
 
     .delete(authenticate.verifyUser, (req, res, next) => { //removing all the comments only from dish and not dish itself 
-        Dishes.findById( req.params.dishId ) // we are looking for the dish to which the comments will be pushed
+        Dishes.findById(req.params.dishId) // we are looking for the dish to which the comments will be pushed
             .then((dish) => {
                 if (dish != null) {
                     for (var i = (dish.comments.length - 1); i >= 0; i--) {   /*all the comments from the array when you have a sub-document. 
@@ -190,6 +197,7 @@ dishRouter.route('/:dishId/comments')
 dishRouter.route('/:dishId/comments/:commentId')
     .get((req, res, next) => {
         Dishes.findById(req.params.dishId)
+            .populate('comments.author')
             .then((dish) => {
                 if (dish != null && dish.comments.id(req.params.commentId) != null) { // it means dish exists and also comments exists
                     res.statusCode = 200;
@@ -228,9 +236,13 @@ dishRouter.route('/:dishId/comments/:commentId')
                     }
                     dish.save()
                         .then((dish) => {
-                            res.statusCode = 200;
-                            res.setHeader('Content-Type', 'application/json');
-                            res.json(dish);
+                            Dishes.findById(dish._id)
+                            .populate('comments.author')
+                            .then((dish) =>{
+                                res.statusCode = 200;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.json(dish);
+                            })                            
                         }, (err) => next(err));
                 }
                 else if (dish == null) {
@@ -249,28 +261,32 @@ dishRouter.route('/:dishId/comments/:commentId')
 
     .delete(authenticate.verifyUser, (req, res, next) => {
         Dishes.findById(req.params.dishId)
-        .then((dish) => {
-            if (dish != null && dish.comments.id(req.params.commentId) != null) {
-                dish.comments.id(req.params.commentId).remove();
-                dish.save()
-                .then((dish) => {
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json(dish);                
-                }, (err) => next(err));
-            }
-            else if (dish == null) {
-                err = new Error('Dish ' + req.params.dishId + ' not found');
-                err.status = 404;
-                return next(err);
-            }
-            else {
-                err = new Error('Comment ' + req.params.commentId + ' not found');
-                err.status = 404;
-                return next(err);            
-            }
-        }, (err) => next(err))
-        .catch((err) => next(err));
+            .then((dish) => {
+                if (dish != null && dish.comments.id(req.params.commentId) != null) {
+                    dish.comments.id(req.params.commentId).remove();
+                    dish.save()
+                        .then((dish) => {
+                            Dishes.findById(dish._id)
+                            .populate('comments.author')
+                            .then((dish) =>{
+                                res.statusCode = 200;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.json(dish);
+                            })                            
+                        }, (err) => next(err));
+                }
+                else if (dish == null) {
+                    err = new Error('Dish ' + req.params.dishId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+                else {
+                    err = new Error('Comment ' + req.params.commentId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
     });
 //all of the above operation will be done bye dishRouter and hence will be required in main file
 module.exports = dishRouter;

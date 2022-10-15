@@ -1,3 +1,14 @@
+/*now that we have the information about the user in the user document, going into the dish schema, 
+so going into dishes.js file. In the dish schema earlier, we were storing the author of the document in the form of a string here. Now we're going to be taking advantage of the fact that we 
+have the support of mongoose population. So I'm going to turn the comment field from a string into 
+mongoose schema types object ID. So, this way, sorry, wrong field. 
+I meant to turn the author field into mongoose schema types object ID. So, the author field now instead of storing a string, will have a reference to the user document. 
+So, when I turn the author field into this type, then the second property that I defined here will be a reference, which would be a reference to the user model
+So, this way, we are now going to be connecting this author field and this author field will 
+simply store a reference to the ID of the user document, instead of storing the details about the author in the form of a name. Now when we do that, we can use mongoose populate to populate 
+this information into our dishes document whenever required. So, with this modification to the dishes schema, in dishes.js file, we'll now update the dish router to use the mongoose population. 
+*/
+
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 require('mongoose-currency').loadType(mongoose); //, what this will do is to load this new currency type into Mongoose
@@ -7,18 +18,18 @@ then so I'm going to declare this constant currency as the Mongoose's types curr
 
 var commentSchema = new Schema({
     rating: {
-        type : Number,
-        min : 1,
-        max : 5,
+        type: Number,
+        min: 1,
+        max: 5,
         required: true
     },
-    comment : {
-        type : String,
+    comment: {
+        type: String,
         required : true
     },
-    author : {
-        type : String,
-        required : true
+    author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 },{
     timestamps: true  //created and updated time 
@@ -58,7 +69,7 @@ const dishSchema = new Schema({
     },
     comments : [commentSchema]
 },{
-    timestamps: true  //created and updated time 
+    timestamps: true, usePushEach: true //created and updated time 
   
 });
 /*means that every dish object, dish document can have multiple comments stored 
