@@ -13,9 +13,12 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 require('mongoose-currency').loadType(mongoose); //, what this will do is to load this new currency type into Mongoose
 const Currency = mongoose.Types.Currency;
+[, commentSchema] = require ("./comments.js");
+
 /*That's it. So, this new type, the currency type is added into Mongoose and that will add in a new type called currency and 
 then so I'm going to declare this constant currency as the Mongoose's types currency. So that I can make use of this in defining the schema in my application*/
 
+/*
 var commentSchema = new Schema({
     rating: {
         type: Number,
@@ -35,7 +38,7 @@ var commentSchema = new Schema({
     timestamps: true  //created and updated time 
   
 });
-
+*/
 const dishSchema = new Schema({
     name: {
         type: String,
@@ -67,7 +70,9 @@ const dishSchema = new Schema({
         type: Boolean, // if my document is missing that, then the default value will be added into the document here
         default:false      
     },
-    comments : [commentSchema]
+    comments : {
+        type: [commentSchema]
+    }
 },{
     timestamps: true, usePushEach: true //created and updated time 
   

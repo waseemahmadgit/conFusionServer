@@ -9,12 +9,24 @@ var authenticate = require('../authenticate');
 var router = express.Router();
 router.use(bodyParser.json());
 
+
 /* GET users listing. */
 router.get('/', function (req, res, next) {
-  res.send('respond with a resource');
-});/*First check to make sure that the user with that username doesn't exist within the system. 
+  
+  User.find({}, (err, users) => {
+    if (err){
+        res.send('something went swrong');
+        next();
+    }
+    res.json(users);
+    console.log(req.username);
+})
+ 
+});
+/*First check to make sure that the user with that username doesn't exist within the system. 
 If the user with that username exist,then you are trying to sign up a duplicate user and that should not be allowed in the system. 
  */
+
 
 router.post('/signup', (req, res, next) => {
   User.register(new User({ username: req.body.username }),
