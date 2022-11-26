@@ -15,8 +15,6 @@ var dishRouter = require('./routes/dishRouter');
 var promoRouter = require('./routes/promoRouter');
 var leadersRouter = require('./routes/leadersRouter');
 
-var app = express();
-
 const mongoose = require('mongoose');
 mongoose.Promise = require ('bluebird');
 
@@ -35,6 +33,17 @@ const connect = mongoose.connect(url,{
 connect.then((db) => {
   console.log('connected correctly to server');
 }, (err) => { console.log(err); });
+
+var app = express();
+
+app.all('*', (req, res, next) =>{
+  if (req.secure){ // this is secure check flag, if tur simpley return next
+    return next();
+  }
+  else {
+    res.redirect(307, 'https//' + req.hostname + ':' +app.get('secPort') + req.url);
+  }//if you say a localhost:3000, that localhost:3000 will be covered by the first part and this will be redirected to localhost:3443 by this configuration here. And then, the rest of it, the req.url will contain the actual path on the server
+}) //307 here represents that the target resource resides temporarily under different URL. And the user agent must not change the request method if it reforms in automatic redirection to that URL.
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

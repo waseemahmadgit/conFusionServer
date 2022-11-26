@@ -16,7 +16,6 @@ const dishRouter = express.Router(); //using express router module
 dishRouter.use(bodyParser.json());
 
 
-
 dishRouter.route('/')
 
     .get((req, res, next) => { // So when you do a get operation on the slash dishes endpoint, you're expecting all the dishes to be returned to the client in response to the get request
@@ -116,7 +115,7 @@ dishRouter.route('/:dishId')
 
     .delete(authenticate.verifyUser, (req, res, next) => {
         if (req.user.admin){
-        Dishes.findByIdAndRemove(req.params.dishId)
+         Dishes.findByIdAndRemove(req.params.dishId)
             .then((resp) => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json'); //Since we are going to be returning the value as a json, so we'll set that to application json. Okay, this will return an array of dishes.
@@ -187,7 +186,7 @@ dishRouter.route('/:dishId/comments')
         res.end('PUT operations not supported on dishes/' + req.params.dishId + '/comments');
     })
 /////****/////// */
-////BREAK POINT/////
+////BREAK POINT///// As particular comments will be deleted by single particular author so it will be dealt in commentid API 
   /*  .delete(authenticate.verifyUser, (req, res, next) => { //removing all the comments only from dish and not dish itself 
         Dishes.findById(req.params.dishId) // we are looking for the dish to which the comments will be pushed
             .then((dish) => {
@@ -259,12 +258,10 @@ dishRouter.route('/:dishId/comments/:commentId')
         Dishes.findById(req.params.dishId)
             .then((dish) => {
                 console.log(dish.comments.id(req.params.commentId).author);
-                console.log(req.user);
+                console.log(req.user.id);
                 
                 if (dish != null && dish.comments.id(req.params.commentId) != null) { // it means dish exists and also comments exists
-                    console.log('check 01');
-                    if (req.user == dish.comments.id(req.params.commentId).author){
-                        console.log('check 02');
+                    if (req.user.id == dish.comments.id(req.params.commentId).author){ //user id and comments'author id should be same to update comment
                         if (req.body.rating) {  //rating and comment are the only two things that I will allow the user to change.
                         dish.comments.id(req.params.commentId).rating = req.body.rating;
                     }
@@ -282,8 +279,7 @@ dishRouter.route('/:dishId/comments/:commentId')
                             })                            
                         }, (err) => next(err));
                     }
-                    else if(dish.comments.id(req.params.commentId).author != req.user._id){
-                        console.log('check 03');
+                    else if(dish.comments.id(req.params.commentId).author != req.user.id){
                         res.statusCode = 403;
                         res.end('You are not Authorized/Allowed for this operation');
                 }
@@ -303,42 +299,28 @@ dishRouter.route('/:dishId/comments/:commentId')
             .catch((err) => next(err));
     })
 
-    
-       
-      /*  if(
-         Comments.findById(req.params.commentId).authorId == req.userId){
-           // Comments.Id(req.params.commentId).remove();
-           Comments.id(req.params.commentId).comment.remove();
-           // Comments.findByIdAndRemove(req.params.commentId);
-            res.statusCode = 200;
-        } else
-            err = new Error('Unauthorized User');
-            err.status = 503;
-            return next(err); 
-        }, (err) => next(err)
-        .catch((err) => next(err))); */
-        .delete(authenticate.verifyUser, (req, res, next) => {
+    .delete(authenticate.verifyUser, (req, res, next) => {
         Dishes.findById(req.params.dishId)
             .then((dish) => {
-            
+
                 if (dish != null && dish.comments.id(req.params.commentId) != null) {
-                    if (dish.comments.id(req.params.commentId).author == req.user._id){   
-                    dish.comments.id(req.params.commentId).remove();
-                    dish.save()
-                        .then((dish) => {
-                            Dishes.findById(dish._id)
-                            .populate('comments.author')
-                            .then((dish) =>{
-                                res.statusCode = 200;
-                                res.setHeader('Content-Type', 'application/json');
-                                res.json(dish);
-                            })                            
-                        }, (err) => next(err));
+                    if (req.user.id == dish.comments.id(req.params.commentId).author) {
+                        dish.comments.id(req.params.commentId).remove();
+                        dish.save()
+                            .then((dish) => {
+                                Dishes.findById(dish._id)
+                                    .populate('comments.author')
+                                    .then((dish) => {
+                                        res.statusCode = 200;
+                                        res.setHeader('Content-Type', 'application/json');
+                                        res.json(dish);
+                                    })
+                            }, (err) => next(err));
                     }
-                    else if(dish.comments.id(req.params.commentId).author != req.user._id){
+                    else if (req.user.id != dish.comments.id(req.params.commentId).author) {
                         res.statusCode = 403;
                         res.end('You are not Authorized/Allowed for this operation');
-                }
+                    }
                 }
                 else if (dish == null) {
                     err = new Error('Dish ' + req.params.dishId + ' not found');
@@ -352,7 +334,7 @@ dishRouter.route('/:dishId/comments/:commentId')
                 }
             }, (err) => next(err))
             .catch((err) => next(err));
-        });
-        
+    });
+
 //all of the above operation will be done bye dishRouter and hence will be required in main file
 module.exports = dishRouter;

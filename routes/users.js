@@ -4,6 +4,7 @@ var bodyParser = require('body-parser');
 var User = require('../models/user');
 var passport = require('passport');
 var authenticate = require('../authenticate');
+const { verify } = require('jsonwebtoken');
 
 
 var router = express.Router();
@@ -11,15 +12,20 @@ router.use(bodyParser.json());
 
 
 /* GET users listing. */
-router.get('/', function (req, res, next) {
-  
+router.get('/', authenticate.verifyUser, function (req, res, next) {
+ 
   User.find({}, (err, users) => {
     if (err){
         res.send('something went swrong');
         next();
     }
-    res.json(users);
-    console.log(req.username);
+    else if (req.user.admin == true) {
+      res.json(users);
+    }
+    else {
+      res.statusCode = 401;
+      res.send('You are not authorized  to perform this sort of action');
+    }
 })
  
 });
