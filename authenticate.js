@@ -14,7 +14,7 @@ passport.serializeUser(User.serializeUser()); //These two functions they seriali
 passport.deserializeUser(User.deserializeUser());   //this 2steps will take care of wahteveris required for sessions
 
 exports.getToken = function(user) { // this will create the token and give it for us. To create the token, we will be using the jsonwebtoken module that we just imported
-    return jwt.sign(user, config.secretkey, {expiresIn: 13600} );
+    return jwt.sign(user, config.secretkey, {expiresIn: 3600} );
 };
 /*Now, we will also next configure the jsonwebtoken based strategy for our passport application. 
 So, let me declare a variable called opts, which is nothing but the options that I'm going to specify for my JWT based strategy.*/
@@ -42,9 +42,6 @@ exports.jwtPassport = passport.use(new JwtStartegy(opts,
     }));
 
     exports.verifyUser = passport.authenticate('jwt', {session: false});
-
-
-
 /* we're not going to be creating sessions. So, that's why I set this option session to false here, 
 and of course, the first one specified the strategy that I'm going to be using. 
 So, for verifying a user, I will use the JWT strategy. How does the JWT strategy work? In the incoming request, 
