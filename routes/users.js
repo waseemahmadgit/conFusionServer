@@ -4,14 +4,14 @@ var bodyParser = require('body-parser');
 var User = require('../models/user');
 var passport = require('passport');
 var authenticate = require('../authenticate');
-
+var cors = require('./cors');
 
 var router = express.Router();
 router.use(bodyParser.json());
 
 
 /* GET users listing. */
-router.get('/', function (req, res, next) {
+router.get('/',cors.corsWithOptions, authenticate.verifyUser, function (req, res, next) {
   
   User.find({}, (err, users) => {
     if (err){

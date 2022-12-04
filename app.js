@@ -27,9 +27,7 @@ const { initialize } = require('passport');
 
 
 const url = config.mongoUrl;
-const connect = mongoose.connect(url,{
-  useMongoClient: true
-});
+const connect = mongoose.connect(url);
 
 connect.then((db) => {
   console.log('connected correctly to server');
@@ -42,7 +40,7 @@ app.all('*', (req, res, next) =>{
     return next();
   }
   else {
-    res.redirect(307, 'https//' + req.hostname + ':' +app.get('secPort') + req.url);
+    res.redirect(307, 'https://' + req.hostname + ':' +app.get('secPort') + req.url);
   }//if you say a localhost:3000, that localhost:3000 will be covered by the first part and this will be redirected to localhost:3443 by this configuration here. And then, the rest of it, the req.url will contain the actual path on the server
 }) //307 here represents that the target resource resides temporarily under different URL. And the user agent must not change the request method if it reforms in automatic redirection to that URL.
 
@@ -62,7 +60,7 @@ app.use('/users', usersRouter);
 
 app.use(express.static(path.join(__dirname, 'public')));// enables us to serve static data from public folder
 
-
+//endpoints
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
 app.use('/leaders', leadersRouter);

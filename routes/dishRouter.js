@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 
 const mongoose = require('mongoose');
 const authenticate = require('../authenticate');
+const cors = require('./cors');
 
 const Dishes = require('../models/dishes');
 
@@ -18,8 +19,8 @@ dishRouter.use(bodyParser.json());
 
 
 dishRouter.route('/')
-
-    .get((req, res, next) => { // So when you do a get operation on the slash dishes endpoint, you're expecting all the dishes to be returned to the client in response to the get request
+    .options(cors.corsWithOptions, (req, res) => { res.sendStatus(200);}) // nothing more than status need to send. this option is applied to every other route
+    .get(cors.cors, (req, res, next) => { // So when you do a get operation on the slash dishes endpoint, you're expecting all the dishes to be returned to the client in response to the get request
         Dishes.find({})
             .populate('comments.author') //when the dishes document has been constructed to send back the reply to the user, we're going to populate the author field inside there from the user document in there.
             .then((dishes) => {
@@ -30,7 +31,7 @@ dishRouter.route('/')
             .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
     })
 
-    .post(authenticate.verifyUser, (req, res, next) => { //post request from client will be json format which will be carrying some name and descripttion info
+    .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => { //post request from client will be json format which will be carrying some name and descripttion info
         if (req.user.admin){
         Dishes.create(req.body)
             .then((dish) => {
@@ -47,12 +48,12 @@ dishRouter.route('/')
         }
     })
 
-    .put(authenticate.verifyUser, (req, res, next) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end('PUT operations not supported');
     })
 
-    .delete(authenticate.verifyUser, (req, res, next) => {
+    .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         if (req.user.admin){
         Dishes.remove({})
             .then((resp) => {
@@ -72,7 +73,8 @@ dishRouter.route('/')
 //////////////////////////////////////
 
 dishRouter.route('/:dishId')
-    .get((req, res, next) => {
+    .options(cors.corsWithOptions, (req, res) => { res.sendStatus(200);})
+    .get(cors.cors, (req, res, next) => {
         Dishes.findById(req.params.dishId)
             .populate('comments.author')
             .then((dish) => {
@@ -83,7 +85,7 @@ dishRouter.route('/:dishId')
             .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
     })
 
-    .post(authenticate.verifyUser, (req, res, next) => {
+    .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         if (req.user.admin){
         res.statusCode = 403;
         res.end('POST operations not supported on /dishes/' + req.params.dishId);
@@ -94,7 +96,7 @@ dishRouter.route('/:dishId')
         }
     })
 
-    .put(authenticate.verifyUser, (req, res, next) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         //since this is a PUT operation, and if the body contains the JSON string, which contains the details of the dish, I can extract the JSON string because we are using the body parser
         if (req.user.admin){
         Dishes.findByIdAndUpdate(req.params.dishId, {
@@ -114,7 +116,7 @@ dishRouter.route('/:dishId')
         }
     })
 
-    .delete(authenticate.verifyUser, (req, res, next) => {
+    .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         if (req.user.admin){
         Dishes.findByIdAndRemove(req.params.dishId)
             .then((resp) => {
@@ -135,8 +137,8 @@ dishRouter.route('/:dishId')
 
 
 dishRouter.route('/:dishId/comments')
-
-    .get((req, res, next) => {
+.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200);})
+    .get(cors.cors, (req, res, next) => {
          
         Dishes.findById(req.params.dishId)
             .populate('comments.author')
@@ -156,7 +158,7 @@ dishRouter.route('/:dishId/comments')
             .catch((err) => next(err));
     })
 
-    .post(authenticate.verifyUser, (req, res, next) => {
+    .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         Dishes.findById(req.params.dishId)
         .then((dish) => {
             if (dish != null) {
@@ -182,7 +184,7 @@ dishRouter.route('/:dishId/comments')
         .catch((err) => next(err));
     })
 
-    .put(authenticate.verifyUser, (req, res, next) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end('PUT operations not supported on dishes/' + req.params.dishId + '/comments');
     })
@@ -226,7 +228,8 @@ dishRouter.route('/:dishId/comments')
 /////////////////////////////////////
 
 dishRouter.route('/:dishId/comments/:commentId')
-    .get((req, res, next) => {
+.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200);})
+    .get(cors.cors, (req, res, next) => {
         Dishes.findById(req.params.dishId)
             .populate('comments.author')
             .then((dish) => {
@@ -249,22 +252,20 @@ dishRouter.route('/:dishId/comments/:commentId')
             .catch((err) => next(err)); // if an error is returned, then that'll simply pass off the error to the overall error handler for my application and the let that worry about how to handle the error
     })
 
-    .post(authenticate.verifyUser, (req, res, next) => {
+    .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end('POST operations not supported on /dishes/' + req.params.dishId
             + '/comments/' + req.params.commentId);
     })
 
-    .put(authenticate.verifyUser, (req, res, next) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         Dishes.findById(req.params.dishId)
             .then((dish) => {
                 console.log(dish.comments.id(req.params.commentId).author);
-                console.log(req.user);
+                console.log(req.user.id);
                 
                 if (dish != null && dish.comments.id(req.params.commentId) != null) { // it means dish exists and also comments exists
-                    console.log('check 01');
-                    if (req.user == dish.comments.id(req.params.commentId).author){
-                        console.log('check 02');
+                    if (req.user.id == dish.comments.id(req.params.commentId).author){
                         if (req.body.rating) {  //rating and comment are the only two things that I will allow the user to change.
                         dish.comments.id(req.params.commentId).rating = req.body.rating;
                     }
@@ -282,8 +283,7 @@ dishRouter.route('/:dishId/comments/:commentId')
                             })                            
                         }, (err) => next(err));
                     }
-                    else if(dish.comments.id(req.params.commentId).author != req.user._id){
-                        console.log('check 03');
+                    else if(dish.comments.id(req.params.commentId).author != req.user.id){
                         res.statusCode = 403;
                         res.end('You are not Authorized/Allowed for this operation');
                 }
@@ -317,7 +317,7 @@ dishRouter.route('/:dishId/comments/:commentId')
             return next(err); 
         }, (err) => next(err)
         .catch((err) => next(err))); */
-        .delete(authenticate.verifyUser, (req, res, next) => {
+        .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         Dishes.findById(req.params.dishId)
             .then((dish) => {
             
